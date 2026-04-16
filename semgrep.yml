@@ -1,0 +1,49 @@
+name: Semgrep — SAST
+
+on:
+  workflow_call:
+    inputs:
+      config:
+        description: "Semgrep ruleset. Use p/<name> for public packs or a local path."
+        type: string
+        default: "p/python p/owasp-top-ten"
+      scan_path:
+        description: "Directory to scan."
+        type: string
+        default: "."
+
+jobs:
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        run: |
+          semgrep \
+            --config ${{ inputs.config }} \
+            --sarif \
+            --output semgrep.sarif \
+            ${{ inputs.scan_path }} \
+            --exit-zero
+        # p/python      — Python-specific security rules
+        # p/owasp-top-ten — maps findings to OWASP Top 10 categories
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Upload SARIF as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif

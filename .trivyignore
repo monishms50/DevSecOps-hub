@@ -1,0 +1,18 @@
+# .trivyignore
+# CVEs suppressed from Trivy container scans.
+#
+# FORMAT (one per line, comment above each entry is REQUIRED):
+#
+#   # Reason: <why we're suppressing this>
+#   # No patch available as of: <date>
+#   # Review by: <date — set a calendar reminder>
+#   # Ticket: <link>
+#   CVE-XXXX-XXXXX
+#
+# ── IMPORTANT ────────────────────────────────────────────────────────────────
+# Never suppress a CVE without a comment.
+# Suppressions with expired review dates fail the pipeline.
+# Run quarterly review: grep "Review by" .trivyignore
+# ─────────────────────────────────────────────────────────────────────────────
+
+# (empty — add entries here as needed)

@@ -1,0 +1,67 @@
+name: Full Security Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      requirements_file:
+        type: string
+        default: "requirements.txt"
+      image_ref:
+        description: "Docker image to scan with Trivy. Leave empty to skip Trivy."
+        type: string
+        default: ""
+      target_url:
+        description: "Staging URL for ZAP DAST. Leave empty to skip ZAP."
+        type: string
+        default: ""
+
+jobs:
+
+  # ── Stage 1: Pre-flight ──────────────────────────────────────────────────────
+  gitleaks:
+    name: "[1] Gitleaks"
+    uses: monishms50/devsecops-hub/.github/workflows/gitleaks.yml@main
+    secrets: inherit
+
+  # ── Stage 2: SAST ────────────────────────────────────────────────────────────
+  bandit:
+    name: "[2] Bandit"
+    needs: gitleaks
+    uses: monishms50/devsecops-hub/.github/workflows/bandit.yml@main
+    secrets: inherit
+
+  semgrep:
+    name: "[2] Semgrep"
+    needs: gitleaks
+    uses: monishms50/devsecops-hub/.github/workflows/semgrep.yml@main
+    secrets: inherit
+  # Bandit and Semgrep run in parallel — both depend on gitleaks passing.
+
+  # ── Stage 3: SCA ─────────────────────────────────────────────────────────────
+  sca:
+    name: "[3] SCA"
+    needs: [bandit, semgrep]
+    uses: monishms50/devsecops-hub/.github/workflows/sca.yml@main
+    with:
+      requirements_file: ${{ inputs.requirements_file }}
+    secrets: inherit
+
+  # ── Stage 4: Container Scan (optional) ───────────────────────────────────────
+  trivy:
+    name: "[4] Trivy"
+    needs: sca
+    if: inputs.image_ref != ''
+    uses: monishms50/devsecops-hub/.github/workflows/trivy.yml@main
+    with:
+      image_ref: ${{ inputs.image_ref }}
+    secrets: inherit
+
+  # ── Stage 5: DAST (optional) ─────────────────────────────────────────────────
+  owasp-zap:
+    name: "[5] OWASP ZAP"
+    needs: sca
+    if: inputs.target_url != ''
+    uses: monishms50/devsecops-hub/.github/workflows/owasp-zap.yml@main
+    with:
+      target_url: ${{ inputs.target_url }}
+    secrets: inherit

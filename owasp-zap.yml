@@ -1,0 +1,61 @@
+name: OWASP ZAP — DAST
+
+on:
+  workflow_call:
+    inputs:
+      target_url:
+        description: "URL of the running app to scan. Must be reachable from GitHub Actions."
+        type: string
+        required: true
+      scan_type:
+        description: "baseline = passive only (fast). full = active attack scan (slow)."
+        type: string
+        default: "baseline"
+      rules_file:
+        description: "Path to ZAP rules override file (optional)."
+        type: string
+        default: ""
+
+jobs:
+  owasp-zap:
+    name: OWASP ZAP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ZAP Baseline Scan
+        if: inputs.scan_type == 'baseline'
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: ${{ inputs.target_url }}
+          rules_file_name: ${{ inputs.rules_file }}
+          issue_title: "ZAP Baseline Scan Report"
+          fail_action: false
+          # fail_action: false — baseline findings are warnings, not blockers.
+          # Set to true when you're ready to gate on DAST results.
+
+      - name: ZAP Full Scan
+        if: inputs.scan_type == 'full'
+        uses: zaproxy/action-full-scan@v0.10.0
+        with:
+          target: ${{ inputs.target_url }}
+          rules_file_name: ${{ inputs.rules_file }}
+          issue_title: "ZAP Full Scan Report"
+          fail_action: false
+
+      # NOTE: ZAP requires a live running app at target_url.
+      # In your caller workflow, deploy to staging BEFORE calling this workflow.
+      # Example caller pattern:
+      #
+      #   deploy-staging:
+      #     runs-on: ubuntu-latest
+      #     steps:
+      #       - run: ./scripts/deploy-staging.sh
+      #
+      #   zap:
+      #     needs: deploy-staging
+      #     uses: monishms50/devsecops-hub/.github/workflows/owasp-zap.yml@main
+      #     with:
+      #       target_url: https://staging.sentryiam.example.com

@@ -1,0 +1,60 @@
+name: Bandit — Python SAST
+
+on:
+  workflow_call:
+    inputs:
+      scan_path:
+        description: "Directory to scan. Defaults to entire repo."
+        type: string
+        default: "."
+      severity:
+        description: "Minimum severity to report: low, medium, high"
+        type: string
+        default: "medium"
+      confidence:
+        description: "Minimum confidence to report: low, medium, high"
+        type: string
+        default: "medium"
+
+jobs:
+  bandit:
+    name: Bandit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Bandit
+        run: pip install bandit[sarif]
+
+      - name: Run Bandit
+        run: |
+          bandit \
+            -r ${{ inputs.scan_path }} \
+            --severity-level ${{ inputs.severity }} \
+            --confidence-level ${{ inputs.confidence }} \
+            -f sarif \
+            -o bandit.sarif \
+            --exit-zero
+        # --exit-zero: don't fail here — gate.py makes the final pass/fail call
+        # Remove --exit-zero once gate.py is wired up if you want Bandit to self-gate
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: bandit.sarif
+          category: bandit
+
+      - name: Upload SARIF as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-sarif
+          path: bandit.sarif

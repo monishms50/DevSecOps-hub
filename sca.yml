@@ -1,0 +1,70 @@
+name: SCA — Dependencies + Licenses
+
+on:
+  workflow_call:
+    inputs:
+      requirements_file:
+        description: "Path to requirements file."
+        type: string
+        default: "requirements.txt"
+      blocked_licenses:
+        description: "Semicolon-separated list of disallowed SPDX license IDs."
+        type: string
+        default: "GPL-2.0;GPL-3.0;AGPL-3.0;SSPL-1.0"
+
+jobs:
+  pip-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install pip-audit pip-licenses
+
+      - name: Install project requirements
+        run: pip install -r ${{ inputs.requirements_file }}
+
+      - name: Run pip-audit
+        run: |
+          pip-audit \
+            -r ${{ inputs.requirements_file }} \
+            --format json \
+            --output pip-audit.json \
+            --exit-zero
+        # Outputs CVEs per package. gate.py reads this for severity gating.
+
+      - name: Check licenses
+        run: |
+          pip-licenses \
+            --format=json \
+            --output-file licenses.json
+
+          # Fail if any blocked license is found
+          BLOCKED="${{ inputs.blocked_licenses }}"
+          IFS=';' read -ra BLOCKED_LIST <<< "$BLOCKED"
+          for license in "${BLOCKED_LIST[@]}"; do
+            if grep -q "\"$license\"" licenses.json; then
+              echo "ERROR: Blocked license found: $license"
+              grep "$license" licenses.json
+              exit 1
+            fi
+          done
+          echo "License check passed."
+
+      - name: Upload audit results as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sca-results
+          path: |
+            pip-audit.json
+            licenses.json

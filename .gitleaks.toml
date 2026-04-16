@@ -1,0 +1,33 @@
+# .gitleaks.toml
+# Gitleaks configuration for devsecops-hub.
+# Docs: https://github.com/gitleaks/gitleaks#configuration
+
+[extend]
+# Extends the default Gitleaks ruleset. Your rules below are additive.
+useDefault = true
+
+# ── Custom rules ────────────────────────────────────────────────────────────────
+# Add rules here for secrets specific to your stack (internal APIs, etc.)
+#
+# Example:
+# [[rules]]
+# id = "sentryiam-internal-key"
+# description = "SentryIAM internal service key"
+# regex = '''sentryiam_[a-zA-Z0-9]{32}'''
+# severity = "ERROR"
+
+# ── Allowlist (known false positives) ──────────────────────────────────────────
+[allowlist]
+description = "Global allowlist — known safe patterns"
+
+regexes = [
+  # Test/example credentials in test files only
+  '''(?i)test.*password''',
+  '''(?i)example.*secret''',
+]
+
+paths = [
+  # Never scan these paths
+  '''\.secrets\.baseline''',
+  '''docs/''',
+]

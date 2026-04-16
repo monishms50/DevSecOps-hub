@@ -1,0 +1,53 @@
+name: Trivy — Container Scan
+
+on:
+  workflow_call:
+    inputs:
+      image_ref:
+        description: "Docker image to scan. e.g. myapp:abc1234"
+        type: string
+        required: true
+      severity:
+        description: "Comma-separated severities that trigger failure."
+        type: string
+        default: "HIGH,CRITICAL"
+      exit_code:
+        description: "Exit code when vulnerabilities are found. 1 = fail pipeline."
+        type: number
+        default: 1
+
+jobs:
+  trivy:
+    name: Trivy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy image scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ inputs.image_ref }}
+          format: sarif
+          output: trivy.sarif
+          exit-code: ${{ inputs.exit_code }}
+          severity: ${{ inputs.severity }}
+          # Scans:
+          # - OS packages (apt/apk/yum inside the image)
+          # - Language packages (pip, npm, etc. inside the image)
+          # - Dockerfile misconfigurations
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy.sarif
+          category: trivy
+
+      - name: Upload SARIF as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-sarif
+          path: trivy.sarif

@@ -1,0 +1,75 @@
+rules:
+
+  # ── SQL Injection ─────────────────────────────────────────────────────────────
+  - id: raw-sql-string-format
+    languages: [python]
+    severity: ERROR
+    message: >
+      Possible SQL injection: user input formatted directly into a SQL string.
+      Use parameterized queries instead: cursor.execute("SELECT ... WHERE id = %s", (user_id,))
+    patterns:
+      - pattern: $DB.execute("..." % ...)
+      - pattern: $DB.execute("..." + ...)
+      - pattern: $DB.execute(f"...")
+
+  # ── Weak Crypto ───────────────────────────────────────────────────────────────
+  - id: weak-hash-password
+    languages: [python]
+    severity: ERROR
+    message: >
+      MD5 and SHA-1 are not safe for password hashing.
+      Use bcrypt (via passlib or bcrypt library) instead.
+    patterns:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+
+  # ── JWT Issues ────────────────────────────────────────────────────────────────
+  - id: jwt-none-algorithm
+    languages: [python]
+    severity: ERROR
+    message: >
+      JWT signed with 'none' algorithm — completely insecure.
+      Always specify HS256 or RS256 explicitly.
+    pattern: jose.jwt.encode(..., algorithm="none", ...)
+
+  - id: jwt-decode-no-verify
+    languages: [python]
+    severity: ERROR
+    message: >
+      JWT decoded with signature verification disabled.
+      Never set options={"verify_signature": False} in production.
+    pattern: jose.jwt.decode(..., options={"verify_signature": False}, ...)
+
+  # ── Secrets in Code ───────────────────────────────────────────────────────────
+  - id: hardcoded-secret-key
+    languages: [python]
+    severity: ERROR
+    message: >
+      Hardcoded SECRET_KEY detected. Load from environment variable instead:
+      SECRET_KEY = os.getenv("SECRET_KEY")
+    patterns:
+      - pattern: SECRET_KEY = "..."
+      - pattern: secret_key = "..."
+
+  # ── FastAPI-specific ──────────────────────────────────────────────────────────
+  - id: fastapi-debug-mode
+    languages: [python]
+    severity: WARNING
+    message: >
+      FastAPI/uvicorn running with debug=True or reload=True.
+      This must not reach production — gate on environment variable.
+    patterns:
+      - pattern: uvicorn.run(..., debug=True, ...)
+      - pattern: uvicorn.run(..., reload=True, ...)
+
+  - id: broad-exception-swallow
+    languages: [python]
+    severity: WARNING
+    message: >
+      Broad except clause silently swallows all exceptions.
+      Catch specific exception types so security errors surface properly.
+    pattern: |
+      try:
+        ...
+      except:
+        pass
