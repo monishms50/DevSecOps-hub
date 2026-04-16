@@ -30,8 +30,9 @@ devsecops-hub/
 │       ├── sca.yml               # pip-audit + license check
 │       ├── trivy.yml             # Container image scanning
 │       ├── owasp-zap.yml         # DAST — authenticated scan support
-│       └── pipeline.yml          # Orchestrator (calls all stages in order)
-│
+│       ├── pipeline.yml          # Orchestrator (calls all stages in order)
+│       └── more...
+|        
 ├── configs/
 │   ├── .gitleaks.toml            # Custom secret detection rules
 │   ├── .secrets.baseline         # detect-secrets baseline (known false positives)
