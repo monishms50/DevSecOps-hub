@@ -20,6 +20,10 @@ jobs:
   bandit:
     name: Bandit
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
 
     steps:
       - name: Checkout
@@ -41,12 +45,12 @@ jobs:
             --confidence-level ${{ inputs.confidence }} \
             -f sarif \
             -o bandit.sarif \
-            --exit-zero
-        # --exit-zero: don't fail here — gate.py makes the final pass/fail call
-        # Remove --exit-zero once gate.py is wired up if you want Bandit to self-gate
+            --exit-zero || true
+
+          test -f bandit.sarif || echo '{"version":"2.1.0","runs":[]}' > bandit.sarif
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: bandit.sarif

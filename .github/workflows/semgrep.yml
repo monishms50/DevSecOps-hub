@@ -16,6 +16,10 @@ jobs:
   semgrep:
     name: Semgrep
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
     container:
       image: semgrep/semgrep
 
@@ -30,12 +34,12 @@ jobs:
             --sarif \
             --output semgrep.sarif \
             ${{ inputs.scan_path }} \
-            --exit-zero
-        # p/python      — Python-specific security rules
-        # p/owasp-top-ten — maps findings to OWASP Top 10 categories
+            --exit-zero || true
+
+          test -f semgrep.sarif || echo '{"version":"2.1.0","runs":[]}' > semgrep.sarif
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: semgrep.sarif

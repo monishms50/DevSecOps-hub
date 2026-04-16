@@ -20,6 +20,9 @@ jobs:
   owasp-zap:
     name: OWASP ZAP
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
 
     steps:
       - name: Checkout
@@ -33,8 +36,6 @@ jobs:
           rules_file_name: ${{ inputs.rules_file }}
           issue_title: "ZAP Baseline Scan Report"
           fail_action: false
-          # fail_action: false — baseline findings are warnings, not blockers.
-          # Set to true when you're ready to gate on DAST results.
 
       - name: ZAP Full Scan
         if: inputs.scan_type == 'full'
@@ -44,18 +45,3 @@ jobs:
           rules_file_name: ${{ inputs.rules_file }}
           issue_title: "ZAP Full Scan Report"
           fail_action: false
-
-      # NOTE: ZAP requires a live running app at target_url.
-      # In your caller workflow, deploy to staging BEFORE calling this workflow.
-      # Example caller pattern:
-      #
-      #   deploy-staging:
-      #     runs-on: ubuntu-latest
-      #     steps:
-      #       - run: ./scripts/deploy-staging.sh
-      #
-      #   zap:
-      #     needs: deploy-staging
-      #     uses: monishms50/devsecops-hub/.github/workflows/owasp-zap.yml@main
-      #     with:
-      #       target_url: https://staging.sentryiam.example.com
