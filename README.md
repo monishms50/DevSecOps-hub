@@ -1,4 +1,4 @@
-# devsecops-hub
+# DevSecOps-hub
 
 A centralized security pipeline library. All CI/CD security tooling, configurations, and reusable workflows live here. Project repos call in — they don't copy anything.
 
