@@ -20,12 +20,13 @@ jobs:
       security-events: write
       actions: read
       contents: read
-    container:
-      image: semgrep/semgrep
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install Semgrep
+        run: pip install semgrep
 
       - name: Run Semgrep
         run: |
@@ -33,8 +34,7 @@ jobs:
             --config ${{ inputs.config }} \
             --sarif \
             --output semgrep.sarif \
-            ${{ inputs.scan_path }} \
-            --exit-zero || true
+            ${{ inputs.scan_path }} || true
 
           test -f semgrep.sarif || echo '{"version":"2.1.0","runs":[]}' > semgrep.sarif
 
